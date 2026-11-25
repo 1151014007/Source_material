@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend / PostgreSQL integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: atlas
+          POSTGRES_PASSWORD: ci-only-database-password
+          POSTGRES_DB: media_atlas_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U atlas -d media_atlas_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://atlas:ci-only-database-password@127.0.0.1:5432/media_atlas_test
+      TEST_DATABASE_URL: postgresql+psycopg://atlas:ci-only-database-password@127.0.0.1:5432/media_atlas_test
+      SESSION_SECRET: ci-only-session-secret-not-for-deployment
+      BOOTSTRAP_ADMIN_PASSWORD: ci-only-bootstrap-password
+      CLOUD_BULK_ENABLED: "false"
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Install locked dependencies
+        run: uv sync --frozen
+      - name: Lint backend and setup scripts
+        run: uv run ruff check app tests migrations ../scripts
+      - name: Apply migrations and verify repeatable initialization
+        run: |
+          uv run alembic upgrade head
+          uv run python -m app.bootstrap
+          uv run python -m app.bootstrap
+      - name: Run unit and isolated PostgreSQL integration tests
+        run: uv run pytest -q
+
+  frontend:
+    name: Frontend / tests and production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Run interaction tests
+        run: npm run test
+      - name: Typecheck and build
+        run: npm run build

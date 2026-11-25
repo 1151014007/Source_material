@@ -4,14 +4,27 @@ import Icon from "./Icon";
 import Overview from "./Overview";
 import Users from "./Users";
 
+function BrandMark({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      className={"atlas-mark " + className}
+      viewBox="0 0 32 32"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M4 5h6l6 10L22 5h6v22h-6V16l-6 10-6-10v11H4V5Z" />
+    </svg>
+  );
+}
+
 function Brand() {
   return (
     <div className="brand">
       <span className="brand-mark">
-        <Icon name="layers" />
+        <BrandMark />
       </span>
       <span>
-        MediaAtlas<small>映库工作区</small>
+        映库<small>MediaAtlas</small>
       </span>
     </div>
   );
@@ -48,52 +61,96 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
           本地工作区
         </span>
       </header>
-      <section className="login-center" aria-labelledby="login-title">
-        <div className="login-emblem">
-          <Icon name="layers" />
-        </div>
-        <h1 id="login-title">登录工作区</h1>
-        <p className="login-description">继续使用你的 MediaAtlas 账号。</p>
-        <form className="login-form" onSubmit={submit}>
-          <label htmlFor="username">用户名</label>
-          <input
-            id="username"
-            autoComplete="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            maxLength={64}
-            placeholder="输入用户名"
-          />
-          <label htmlFor="password">密码</label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            maxLength={256}
-            placeholder="输入密码"
-          />
-          {error && (
-            <div className="error" role="alert">
-              {error}
-            </div>
-          )}
-          <button className="primary login-button" disabled={busy}>
-            {busy ? "正在登录…" : "登录工作区"}
-            <Icon name="arrow" />
-          </button>
-        </form>
-        <div className="login-note">
-          <Icon name="lock" />
-          仅限已授权的工作区成员
-        </div>
-      </section>
+      <div className="login-content">
+        <section className="login-intro" aria-label="映库多模态素材工作区">
+          <div className="intro-index">
+            <span>MEDIAATLAS</span>
+            <span>内容工作区 / 01</span>
+          </div>
+          <div className="brand-scene" aria-hidden="true">
+            <div className="scene-cross cross-top" />
+            <div className="scene-cross cross-bottom" />
+            <BrandMark className="scene-mark mark-back" />
+            <BrandMark className="scene-mark mark-front" />
+            <span className="scene-axis axis-one" />
+            <span className="scene-axis axis-two" />
+          </div>
+          <div className="intro-copy">
+            <h2>
+              映库<span>素材与知识工作区</span>
+            </h2>
+            <p>
+              文档、图像、音频与视频。
+              <br />
+              围绕内容，建立有据可循的连接。
+            </p>
+          </div>
+          <div className="intro-modalities">
+            <span>
+              <Icon name="text" />
+              文档
+            </span>
+            <span>
+              <Icon name="image" />
+              图像
+            </span>
+            <span>
+              <Icon name="audio" />
+              音频
+            </span>
+            <span>
+              <Icon name="scan" />
+              视频
+            </span>
+          </div>
+        </section>
+        <section className="login-center" aria-labelledby="login-title">
+          <div className="login-emblem">
+            <BrandMark />
+          </div>
+          <h1 id="login-title">登录工作区</h1>
+          <p className="login-description">继续使用你的 MediaAtlas 账号。</p>
+          <form className="login-form" onSubmit={submit}>
+            <label htmlFor="username">用户名</label>
+            <input
+              id="username"
+              autoComplete="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              maxLength={64}
+              placeholder="输入用户名"
+            />
+            <label htmlFor="password">密码</label>
+            <input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              maxLength={256}
+              placeholder="输入密码"
+            />
+            {error && (
+              <div className="error" role="alert">
+                {error}
+              </div>
+            )}
+            <button className="primary login-button" disabled={busy}>
+              {busy ? "正在登录…" : "登录工作区"}
+              <Icon name="arrow" />
+            </button>
+          </form>
+          <div className="login-note">
+            <Icon name="lock" />
+            仅限已授权的工作区成员
+          </div>
+        </section>
+      </div>
       <footer className="login-footer">
         <span>文档 · 图片 · 音频 · 视频</span>
-        <span>MediaAtlas</span>
+        <span>PRIVATE WORKSPACE</span>
       </footer>
     </main>
   );

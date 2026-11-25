@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type IntegrationStatus } from "./api";
 import Icon, { type IconName } from "./Icon";
+import ConnectionDetails from "./ConnectionDetails";
 
 const serviceIcons: Record<string, IconName> = {
   chat: "text",
@@ -21,22 +22,35 @@ export default function Overview() {
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
   const generation = useRef(0);
   const load = useCallback(async () => {
     const current = ++generation.current;
     setBusy(true);
     setError("");
-    setHealth(null);
-    setStatus(null);
     try {
       const [integrations, readiness] = await Promise.allSettled([
         api<IntegrationStatus>("/system/integrations"),
-        fetch("/health/ready").then((r) => r.json()),
+        fetch("/health/ready").then(async (r) => {
+          const result = await r.json();
+          if (
+            typeof result?.checks?.database !== "boolean" ||
+            typeof result?.checks?.redis !== "boolean"
+          )
+            throw new Error("健康信息读取失败");
+          return result;
+        }),
       ]);
       if (current === generation.current) {
-        if (integrations.status === "fulfilled") setStatus(integrations.value);
+        if (integrations.status === "fulfilled") {
+          setStatus(integrations.value);
+          setStale(false);
+        } else setStale(true);
         if (readiness.status === "fulfilled" && readiness.value?.checks)
           setHealth(readiness.value);
+        else setHealth(null);
         if (
           integrations.status === "rejected" ||
           readiness.status === "rejected"
@@ -58,12 +72,32 @@ export default function Overview() {
       generation.current++;
     };
   }, [load]);
+  useEffect(() => {
+    const focusSearch = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        event.key !== "/" ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        (target instanceof HTMLElement &&
+          (target.matches("input, textarea, select") ||
+            target.isContentEditable))
+      )
+        return;
+      event.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
+  }, []);
   const items = status?.integrations ?? [];
   const tested = items.filter((item) => item.historical_probe?.passed).length;
   const localReady = health
     ? Object.values(health.checks).filter(Boolean).length
     : 0;
   const search = query.trim().toLocaleLowerCase();
+  const selected = items.find((item) => item.id === selectedId);
   const visible = items.filter((item) => {
     const passed = item.historical_probe?.passed === true;
     return (
@@ -80,22 +114,27 @@ export default function Overview() {
           <h1>接入概览</h1>
           <p>管理模型、存储与基础服务的连接。</p>
         </div>
-        <button
-          className="secondary"
-          aria-label="刷新状态"
-          disabled={busy}
-          onClick={load}
-        >
-          <Icon name="refresh" className={busy ? "spinning" : ""} />
-          {busy ? "刷新中…" : "刷新状态"}
-        </button>
+        <div className="header-actions">
+          <span className="update-status" role="status">
+            {busy ? "正在更新…" : stale && status ? "显示上次结果" : ""}
+          </span>
+          <button
+            className="secondary"
+            aria-label="刷新状态"
+            disabled={busy}
+            onClick={load}
+          >
+            <Icon name="refresh" className={busy ? "spinning" : ""} />
+            {busy ? "刷新中…" : "刷新状态"}
+          </button>
+        </div>
       </div>
       {error && (
         <div className="error" role="alert">
           {error}
         </div>
       )}
-      <div className="metrics">
+      <div className="metrics" aria-busy={busy}>
         <div className="metric">
           <span>本地基础服务</span>
           <strong>
@@ -169,20 +208,27 @@ export default function Overview() {
           <label className="search-field">
             <Icon name="search" />
             <input
+              ref={searchRef}
               type="search"
               aria-label="搜索接入"
               placeholder="搜索接入…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  setQuery("");
+                }
+              }}
             />
+            <kbd>/</kbd>
           </label>
         </div>
         <div className="table-wrap">
           <table className="connections-table" aria-label="服务接入">
             <thead>
               <tr>
-                <th>能力</th>
-                <th>服务商</th>
+                <th>能力 / 服务商</th>
                 <th>模型 / 存储</th>
                 <th>配置</th>
                 <th>最近验证</th>
@@ -190,21 +236,28 @@ export default function Overview() {
             </thead>
             <tbody>
               {visible.map((item) => (
-                <tr key={item.id}>
+                <tr
+                  key={item.id}
+                  className={selectedId === item.id ? "selected-row" : ""}
+                >
                   <td>
-                    <div className="service-name">
+                    <button
+                      className="service-name service-trigger"
+                      aria-label={"查看" + item.label + "详情"}
+                      onClick={() => setSelectedId(item.id)}
+                    >
                       <span className="service-icon">
                         <Icon name={serviceIcons[item.id] ?? "connections"} />
                       </span>
-                      <div>
+                      <span className="service-label">
                         <strong>{item.label}</strong>
-                        <small>{item.id.replaceAll("_", " ")}</small>
-                      </div>
-                    </div>
+                        <small>{item.provider}</small>
+                      </span>
+                      <Icon name="chevron" className="row-chevron" />
+                    </button>
                   </td>
-                  <td>{item.provider}</td>
                   <td>
-                    <code>{item.model}</code>
+                    <code title={item.model}>{item.model}</code>
                   </td>
                   <td>
                     <span
@@ -248,7 +301,7 @@ export default function Overview() {
               ))}
               {!visible.length && (
                 <tr>
-                  <td colSpan={5} className="empty-cell">
+                  <td colSpan={4} className="empty-cell">
                     <div className="empty-state">
                       {!status ? (
                         <>
@@ -290,6 +343,11 @@ export default function Overview() {
               (error ? "接入信息读取失败，请重试。" : "正在读取接入信息…")}
           </span>
         </div>
+        {stale && status && (
+          <div className="stale-note">
+            接入信息更新失败，当前列表保留上次结果。
+          </div>
+        )}
       </section>
       <section className="runtime-section" aria-labelledby="runtime-title">
         <div className="section-title">
@@ -344,6 +402,12 @@ export default function Overview() {
           ))}
         </div>
       </section>
+      {selected && (
+        <ConnectionDetails
+          item={selected}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
     </>
   );
 }
