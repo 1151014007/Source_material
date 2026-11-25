@@ -10,6 +10,7 @@
 - admin/editor/viewer角色与工作区数据隔离；管理员可查看和创建成员。
 - 本地PostgreSQL、Redis独立端口与独立卷，业务库和测试库分开。
 - 接入概览读取既有小样验证记录，刷新页面不触发收费模型调用。
+- 紧凑深色工作台，支持按名称、服务商或模型搜索接入，以及验证状态筛选。
 - 数据库和Redis健康检查；数据库未初始化时不会伪报就绪。
 
 ## 已实际验证的外部接入
@@ -31,6 +32,8 @@
 ![工作区登录](docs/screenshots/foundation-login.png)
 
 ![接入概览](docs/screenshots/foundation-overview.png)
+
+![成员管理](docs/screenshots/foundation-users.png)
 
 ## 本地启动
 

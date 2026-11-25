@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, type User } from "./api";
+import Icon from "./Icon";
 
 const roles = { admin: "管理员", editor: "编辑者", viewer: "浏览者" };
 
@@ -40,12 +41,12 @@ export default function Users() {
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">WORKSPACE / ACCESS</div>
           <h1>用户与权限</h1>
-          <p>为工作区成员分配适合的访问范围。</p>
+          <p>管理工作区成员及其访问权限。</p>
         </div>
         <button className="primary" onClick={() => setAdding(!adding)}>
-          {adding ? "收起表单" : "＋ 添加成员"}
+          <Icon name={adding ? "close" : "plus"} />
+          {adding ? "收起表单" : "添加成员"}
         </button>
       </div>
       {error && (
@@ -94,45 +95,63 @@ export default function Users() {
           </button>
         </form>
       )}
-      <div className="panel">
+      <section className="members-section" aria-labelledby="members-title">
         <div className="panel-head">
-          <h2>工作区成员</h2>
-          <span>{users.length} 位成员</span>
+          <h2 id="members-title">
+            <Icon name="users" />
+            工作区成员<span className="count-badge">{users.length}</span>
+          </h2>
+          <span>
+            <Icon name="shield" />
+            角色控制访问范围
+          </span>
         </div>
         <div className="table-wrap">
-          <table>
+          <table className="members-table" aria-label="工作区成员">
             <thead>
               <tr>
                 <th>成员</th>
                 <th>角色</th>
-                <th>访问范围</th>
+                <th>角色说明</th>
               </tr>
             </thead>
             <tbody>
               {users.map((user) => (
                 <tr key={user.id}>
                   <td>
-                    <span className="user-dot">
-                      {user.username[0].toUpperCase()}
-                    </span>
-                    <strong>{user.username}</strong>
+                    <div className="member-name">
+                      <span className="user-avatar">
+                        {user.username[0].toUpperCase()}
+                      </span>
+                      <div>
+                        <strong>{user.username}</strong>
+                        <small>工作区成员</small>
+                      </div>
+                    </div>
                   </td>
                   <td>
-                    <span className="pill neutral">{roles[user.role]}</span>
+                    <span className={"role-badge role-" + user.role}>
+                      <Icon name={user.role === "admin" ? "shield" : "users"} />
+                      {roles[user.role]}
+                    </span>
                   </td>
                   <td>
                     {user.role === "admin"
-                      ? "工作区管理、审核与发布"
+                      ? "管理服务配置与工作区成员"
                       : user.role === "editor"
-                        ? "草稿与素材编辑"
-                        : "已发布素材"}
+                        ? "编辑权限，无法管理成员"
+                        : "浏览权限，无法管理成员"}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+        <div className="list-foot">
+          <Icon name="info" />
+          <span>新增成员默认使用浏览者角色。仅管理员可以管理工作区成员。</span>
+        </div>
+      </section>
     </>
   );
 }

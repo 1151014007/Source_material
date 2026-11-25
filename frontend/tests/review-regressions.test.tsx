@@ -96,7 +96,7 @@ test("readiness refresh is retained even if the authenticated settings endpoint 
     ).toHaveTextContent(/2\s*\/\s*2/),
   );
   failed = true;
-  fireEvent.click(screen.getByRole("button", { name: "↻ 刷新状态" }));
+  fireEvent.click(screen.getByRole("button", { name: "刷新状态" }));
   await waitFor(() =>
     expect(label.parentElement).toHaveTextContent(/1\s*\/\s*2/),
   );
