@@ -1,0 +1,26 @@
+{
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "tos:HeadBucket",
+        "tos:ListBucket"
+      ],
+      "Resource": [
+        "trn:tos:::media-atlas-1151014007"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "tos:GetObject",
+        "tos:PutObject",
+        "tos:DeleteObject",
+        "tos:AbortMultipartUpload"
+      ],
+      "Resource": [
+        "trn:tos:::media-atlas-1151014007/media-atlas/development/*"
+      ]
+    }
+  ]
+}
